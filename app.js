@@ -9,6 +9,13 @@
   var CFG = window.QUIZ_CONFIG || {};
   var QS = window.QUIZ_QUESTIONS || [];
   var N = QS.length;
+  // apply the encoded answer key (see questions.js) to questions that have no explicit correct index
+  (function () {
+    try {
+      var k = window.QUIZ_KEY ? atob(window.QUIZ_KEY).split('').reverse().join('') : '';
+      for (var i = 0; i < QS.length && i < k.length; i++) { var n = parseInt(k.charAt(i), 10); if (n >= 1 && n <= 4 && (QS[i].correct === null || QS[i].correct === undefined)) QS[i].correct = n - 1; }
+    } catch (e) {}
+  })();
   var ROOT = 'games/' + (CFG.gameId || 'fredy80');
   var LETTERS = ['א', 'ב', 'ג', 'ד'];
   var TITLE = CFG.title || 'חידון פרדי 80';
@@ -417,7 +424,7 @@
       answered.textContent = ac + ' מתוך ' + n + ' ענו';
       var key = ui.hostPick !== null ? ui.hostPick : (Q.correct === undefined ? null : Q.correct);
       dist.update({ liveCounts: true, key: s.phase === 'question' ? key : null, pick: ui.hostPick });
-      if (s.phase === 'question') hint.textContent = key === null ? 'לשאלה הזו עוד אין תשובה מוגדרת. לחצו על התשובה הנכונה ואז על "חשוף תשובה".' : 'התשובה המסומנת ב-✓ תיחשף לכולם. את הסימון רואים רק כאן.';
+      if (s.phase === 'question') hint.textContent = key === null ? 'לשאלה הזו עוד אין תשובה מוגדרת. לחצו על התשובה הנכונה ואז על "חשוף תשובה".' : 'התשובה הנכונה כבר מסומנת ב-✓ ורק אתם רואים אותה. לשינוי לפני החשיפה, לחצו על תשובה אחרת.';
       else if (s.phase === 'reveal') hint.textContent = 'טעות בחשיפה? לחיצה על תשובה אחרת מתקנת אותה לכולם.';
       else hint.textContent = '';
       if (s.phase === 'lobby') { primary.textContent = (G.results && Object.keys(G.results).length) ? 'המשך משחק' : (n ? 'התחל משחק (' + n + ' משתתפים)' : 'התחל משחק'); primary.disabled = false; }
