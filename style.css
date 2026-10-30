@@ -239,3 +239,5 @@ html.is-fullscreen.idle, html.is-fullscreen.idle * { cursor: none; }
 .primary-wrap .ghost { justify-self: center; }
 .mine.big { font-size: 1.3rem; }
 .board-screen .wait h1 { font-size: 1.5rem; }
+
+.tv-board .sub { text-align: center; margin: 0; }
