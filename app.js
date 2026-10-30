@@ -499,6 +499,28 @@
     if (inQ(s)) preload(qIndex(s) + 1);
   }
 
+  // TV screen: real fullscreen (hides the browser bars), toggled by a button or the F key; cursor and button hide when idle
+  if (mode === 'screen') {
+    function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+    function toggleFullscreen() {
+      var d = document, root = d.documentElement;
+      if (isFull()) { if (d.exitFullscreen) d.exitFullscreen(); else if (d.webkitExitFullscreen) d.webkitExitFullscreen(); return; }
+      try {
+        var p = root.requestFullscreen ? root.requestFullscreen({ navigationUI: 'hide' }) : (root.webkitRequestFullscreen ? root.webkitRequestFullscreen() : null);
+        if (p && p.catch) p.catch(function () {});
+      } catch (e) {}
+    }
+    var fsBtn = btn('מסך מלא', 'fs-btn', toggleFullscreen); fsBtn.id = 'btn-fullscreen'; fsBtn.title = 'מסך מלא (מקש F, יציאה עם Esc)';
+    document.body.append(fsBtn);
+    function onFs() { var on = isFull(); fsBtn.textContent = on ? 'יציאה ממסך מלא' : 'מסך מלא'; document.documentElement.classList.toggle('is-fullscreen', on); }
+    document.addEventListener('fullscreenchange', onFs); document.addEventListener('webkitfullscreenchange', onFs);
+    document.addEventListener('keydown', function (e) { if ((e.key === 'f' || e.key === 'F' || e.key === 'כ') && !e.metaKey && !e.ctrlKey && !e.altKey) toggleFullscreen(); });
+    var idleT;
+    function wake() { document.documentElement.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(function () { document.documentElement.classList.add('idle'); }, 3000); }
+    ['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, wake, { passive: true }); });
+    wake();
+  }
+
   sync.onConnected(function (c) { connected = c; if (current.view && current.view.update) current.view.update(); });
   sync.watch(ROOT, function (v) { G = v || {}; loaded = true; render(); });
 })();
