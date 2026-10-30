@@ -21,7 +21,7 @@
   var TITLE = CFG.title || 'חידון פרדי 80';
   var app = document.getElementById('app');
   var hash = (location.hash || '').toLowerCase();
-  var mode = hash.indexOf('host') >= 0 ? 'host' : hash.indexOf('screen') >= 0 ? 'screen' : 'player';
+  var mode = hash.indexOf('host') >= 0 ? 'host' : hash.indexOf('screen') >= 0 ? 'screen' : hash.indexOf('board') >= 0 ? 'board' : 'player';
   document.documentElement.dataset.mode = mode;
   window.addEventListener('hashchange', function () { location.reload(); });
 
@@ -483,6 +483,19 @@
     return { el: root, update: update };
   }
 
+  // ---------- live ranking page (#board): read-only, everyone, always up to date ----------
+  function viewBoardLive() {
+    var dot = connDot(); var sub = el('p', 'sub'); var box = el('div', 'board-wrap'); var now = el('p', 'now');
+    var root = el('div', 'screen tv tv-board board-live', el('main', null, el('div', 'board-head', el('h1', 'h', 'טבלת הניקוד'), el('div', 'brand', dot.el, TITLE)), sub, now, box));
+    function update() {
+      var s = state(); dot.update(); var rows = computeRows(); var nres = Object.keys(G.results || {}).length;
+      sub.textContent = rows.length + ' משתתפים, אחרי ' + nres + ' שאלות';
+      now.textContent = s.phase === 'lobby' ? 'ממתינים שהמנחה יתחיל' : inQ(s) ? ('שאלה ' + (qIndex(s) + 1) + ' מתוך ' + N + (s.phase === 'reveal' ? ', התשובה נחשפה' : ', ' + answeredCount(qIndex(s)) + ' מתוך ' + playerCount() + ' ענו')) : s.phase === 'final' ? 'המשחק הסתיים' : '';
+      box.replaceChildren(leaderboard(rows, {}));
+    }
+    return { el: root, update: update };
+  }
+
   // ---------- render ----------
   function render() {
     if (!loaded) return;
@@ -490,6 +503,8 @@
     if (mode === 'host') {
       if (!hostAuthed) { key = 'hostpin'; make = viewHostPin; }
       else { key = 'host:' + qIndex(s); make = viewHost; }
+    } else if (mode === 'board') {
+      key = 'board-live'; make = viewBoardLive;
     } else if (mode === 'screen') {
       if (s.phase === 'lobby') { key = 'screen:lobby'; make = viewScreenLobby; }
       else if (inQ(s)) { key = 'screen:q:' + qIndex(s); make = viewScreenQuestion; }
@@ -507,7 +522,7 @@
   }
 
   // TV screen: real fullscreen (hides the browser bars), toggled by a button or the F key; cursor and button hide when idle
-  if (mode === 'screen') {
+  if (mode === 'screen' || mode === 'board') {
     function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
     function toggleFullscreen() {
       var d = document, root = d.documentElement;

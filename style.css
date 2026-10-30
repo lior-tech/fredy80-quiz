@@ -218,3 +218,12 @@ button.opt:not(:disabled):active { transform: scale(.985); }
 html.is-fullscreen.idle .fs-btn { opacity: 0; pointer-events: none; }
 html.is-fullscreen.idle, html.is-fullscreen.idle * { cursor: none; }
 .fs-hint { position: fixed; bottom: max(14px, env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 39; background: rgba(232,184,74,.95); color: #1b1608; font-weight: 700; font-size: clamp(1rem, 1.6vw, 1.3rem); padding: 10px 22px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.35); pointer-events: none; white-space: nowrap; }
+
+/* live ranking page (#board) */
+.board-live > main { max-width: 1400px; }
+.board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.board-live .h { text-align: start; }
+.board-live .sub, .board-live .now { margin: 0; color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.4rem); }
+.board-live .now { color: var(--gold2); font-weight: 600; }
+.board-live .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+.board-live .board .row { font-size: clamp(1rem, 1.5vw, 1.4rem); }
