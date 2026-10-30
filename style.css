@@ -227,3 +227,15 @@ html.is-fullscreen.idle, html.is-fullscreen.idle * { cursor: none; }
 .board-live .now { color: var(--gold2); font-weight: 600; }
 .board-live .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
 .board-live .board .row { font-size: clamp(1rem, 1.5vw, 1.4rem); }
+
+/* winner announcement, multi-column boards, host extras */
+.winner { text-align: center; display: grid; gap: 4px; padding: 10px 0 6px; }
+.winner .eyebrow { margin: 0; }
+.winner-name { font: 900 clamp(2rem, 6vw, 4.5rem)/1.1 var(--display); color: var(--gold2); text-wrap: balance; overflow-wrap: anywhere; }
+.winner-pts { color: var(--muted); font-weight: 600; font-size: clamp(1rem, 2vw, 1.6rem); }
+.board.cols { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.tv-board .winner-name { font-size: clamp(2.5rem, 7vw, 6rem); }
+.primary-wrap { display: grid; gap: 8px; justify-items: stretch; }
+.primary-wrap .ghost { justify-self: center; }
+.mine.big { font-size: 1.3rem; }
+.board-screen .wait h1 { font-size: 1.5rem; }

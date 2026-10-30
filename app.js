@@ -126,7 +126,7 @@
     },
     next: function () { var s = state(); var q = qIndex(s); if (q + 1 >= N) return A.final(); return A.open(q + 1); },
     prev: function () { var q = qIndex(state()); if (q > 0) return A.open(q - 1); return Promise.resolve(); },
-    board: function () { return sync.update(ROOT, { 'state/phase': 'board' }); },
+    board: function () { var s = state(); var patch = { 'state/phase': 'board' }; if (inQ(s) && result(qIndex(s))) patch['state/boardDone'] = qIndex(s); return sync.update(ROOT, patch); },
     back: function () { return A.open(qIndex(state())); },
     final: function () { return sync.update(ROOT, { 'state/phase': 'final' }); },
     lobby: function () { return sync.update(ROOT, { 'state/phase': 'lobby' }); },
@@ -153,9 +153,17 @@
     return { el: e, update: update };
   }
 
+  function winnerLine(rows) {
+    var top = rows.filter(function (r) { return r.rank === 1; });
+    if (!top.length) return el('div', 'winner');
+    var names = top.map(function (r) { return r.name || 'ללא שם'; });
+    var label = names.length > 1 ? names.slice(0, -1).join(', ') + ' ו' + names[names.length - 1] : names[0];
+    return el('div', 'winner', el('p', 'eyebrow', names.length > 1 ? 'במקום הראשון, בשוויון' : 'במקום הראשון'), el('div', 'winner-name', label), el('div', 'winner-pts', top[0].score + ' נקודות'));
+  }
+
   function leaderboard(rows, opts) {
     opts = opts || {};
-    var ol = el('ol', 'board');
+    var ol = el('ol', 'board' + (opts.cols ? ' cols' : ''));
     rows.slice(0, opts.limit || rows.length).forEach(function (r) {
       ol.append(el('li', 'row' + (r.pid === opts.me ? ' me' : '') + (r.rank <= 3 ? ' top' : ''),
         el('span', 'rank', r.rank), el('span', 'name', r.name || 'ללא שם'), el('span', 'pts', r.score)));
@@ -312,20 +320,25 @@
   }
 
   function viewBoard() {
-    var top = topbar(); var box = el('div', 'board-wrap'); var sub = el('p', 'sub');
-    var root = el('div', 'screen board-screen', top.el, el('main', null, el('h1', 'h', 'טבלת הניקוד'), sub, box));
-    function update() { top.update(); var n = Object.keys(G.results || {}).length; sub.textContent = 'אחרי ' + n + ' שאלות'; box.replaceChildren(leaderboard(computeRows(), { me: me.pid })); }
+    var top = topbar(); var mine = el('p', 'mine big'); var sub = el('p', 'sub');
+    var root = el('div', 'screen board-screen', top.el, el('main', null, el('div', 'wait', el('div', 'pulse'), el('h1', null, 'טבלת הניקוד על המסך הגדול'), sub), mine));
+    function update() {
+      top.update(); var rows = computeRows(); var n = Object.keys(G.results || {}).length;
+      sub.textContent = 'אחרי ' + n + ' שאלות. ממשיכים עוד רגע.';
+      var r = rows.filter(function (x) { return x.pid === me.pid; })[0];
+      mine.textContent = r ? 'יש לכם ' + r.score + ' נקודות, מקום ' + r.rank + ' מתוך ' + rows.length : '';
+    }
     return { el: root, update: update };
   }
 
   function viewFinal() {
-    var top = topbar(); var podium = el('div', 'podium'); var box = el('div', 'board-wrap'); var mine = el('p', 'mine'); var shot = false;
-    var root = el('div', 'screen final', top.el, el('main', null, el('p', 'eyebrow', 'סיום המשחק'), el('h1', 'h', 'התוצאות הסופיות'), podium, mine, box,
+    var top = topbar(); var podium = el('div', 'podium'); var box = el('div', 'board-wrap'); var mine = el('p', 'mine'); var win = el('div', 'winner-wrap'); var shot = false;
+    var root = el('div', 'screen final', top.el, el('main', null, el('p', 'eyebrow', 'סיום המשחק'), el('h1', 'h', 'התוצאות הסופיות'), win, podium, mine, box,
       el('figure', 'photo outro-fig', img('img/outro.jpg')), el('p', 'bye', 'עד לפעם הבאה, ביום הולדת 90')));
     function update() {
-      top.update(); var rows = computeRows(); renderPodium(podium, rows); box.replaceChildren(leaderboard(rows, { me: me.pid }));
+      top.update(); var rows = computeRows(); win.replaceChildren(winnerLine(rows)); renderPodium(podium, rows); box.replaceChildren(leaderboard(rows, { me: me.pid }));
       var r = rows.filter(function (x) { return x.pid === me.pid; })[0];
-      mine.textContent = r ? 'סיימתם במקום ' + r.rank + ' עם ' + r.score + ' נקודות' : '';
+      mine.textContent = r ? 'סיימתם במקום ' + r.rank + ' עם ' + r.score + ' נקודות מתוך ' + Object.keys(G.results || {}).length + ' שאלות' : '';
       if (!shot) { shot = true; confetti(); }
     }
     return { el: root, update: update };
@@ -363,11 +376,13 @@
     var qPanel = el('section', 'panel q-panel', el('div', 'qhead', el('span', 'qnum', 'שאלה ' + (q + 1) + ' מתוך ' + N), answered), fig, el('h2', 'qtext', Q.q), Q.note ? el('p', 'qnote', Q.note) : null, dist.el, hint);
 
     // board panel
-    var boardWrap = el('div', 'board-wrap'); var boardTitle = el('h2', null, 'טבלת הניקוד');
+    var boardWrap = el('div', 'board-wrap'); var boardTitle = el('h2', null, 'התוצאות הסופיות');
     var boardPanel = el('section', 'panel board-panel', boardTitle, boardWrap);
+    var tvPanel = el('section', 'panel tv-note', el('h2', null, 'טבלת הניקוד מוצגת עכשיו על המסך הגדול'), el('p', 'sub', 'כשסיימתם לדבר על התוצאות, לחצו על הכפתור הראשי כדי להמשיך.'));
 
     // controls
     var primary = btn('', 'primary big', onPrimary); primary.id = 'btn-primary';
+    var forceB = btn('חשוף בכל זאת, בלי לחכות', 'ghost', function () { var k = ui.hostPick !== null ? ui.hostPick : (Q.correct === undefined ? null : Q.correct); if (k !== null) A.reveal(k); }); forceB.id = 'btn-force-reveal';
     var prevB = btn('השאלה הקודמת', 'ghost', function () { A.prev(); }); prevB.id = 'btn-prev';
     var skipB = btn('דלג לשאלה הבאה', 'ghost', function () { A.next(); }); skipB.id = 'btn-skip';
     var boardB = btn('הצג טבלת ניקוד', 'ghost', function () { A.board(); }); boardB.id = 'btn-board';
@@ -382,12 +397,12 @@
     var resetAllB = btn('איפוס מלא (גם המשתתפים נמחקים)', 'danger', function () { confirmTwice(resetAllB, function () { A.resetAll(); }); }); resetAllB.id = 'btn-reset-all';
     var plist = el('ul', 'plist'); var pcount = el('span', 'pcount'); var liByPid = {};
     var controls = el('aside', 'controls',
-      el('div', 'primary-wrap', primary),
+      el('div', 'primary-wrap', primary, forceB),
       el('div', 'row', prevB, skipB, boardB, backB, finalB, lobbyB),
       jump,
       el('h3', null, 'משתתפים ', pcount), el('p', 'sub', 'האות ליד השם היא התשובה שנבחרה. הכפתורים + ו− נותנים או מורידים נקודת בונוס, למשל לשאלת הבונוס.'), plist,
       el('details', 'danger-zone', el('summary', null, 'איפוס'), resetScoresB, resetAllB));
-    var root = el('div', 'screen host', header, el('div', 'host-grid', el('section', 'preview', lobbyPanel, qPanel, boardPanel), controls));
+    var root = el('div', 'screen host', header, el('div', 'host-grid', el('section', 'preview', lobbyPanel, qPanel, tvPanel, boardPanel), controls));
 
     function onPick(i) {
       var s = state();
@@ -398,8 +413,8 @@
       var s = state();
       if (s.phase === 'lobby') A.start();
       else if (s.phase === 'question') { var i = ui.hostPick !== null ? ui.hostPick : Q.correct; if (i !== null && i !== undefined) A.reveal(i); }
-      else if (s.phase === 'reveal') A.next();
-      else if (s.phase === 'board') A.back();
+      else if (s.phase === 'reveal') { if (q + 1 >= N) A.final(); else if ((q + 1) % 5 === 0 && s.boardDone !== q) A.board(); else A.next(); }
+      else if (s.phase === 'board') { if (result(q)) { if (q + 1 < N) A.open(q + 1); else A.final(); } else A.back(); }
       else if (s.phase === 'final') A.board();
     }
     function playerRow(r, s, ans) {
@@ -418,25 +433,31 @@
     function update() {
       var s = state(); dot.update();
       var n = playerCount(); var ac = answeredCount(q);
-      lobbyPanel.hidden = s.phase !== 'lobby'; qPanel.hidden = !inQ(s); boardPanel.hidden = !(s.phase === 'board' || s.phase === 'final');
+      lobbyPanel.hidden = s.phase !== 'lobby'; qPanel.hidden = !inQ(s); tvPanel.hidden = s.phase !== 'board'; boardPanel.hidden = s.phase !== 'final';
+      var P = players(); var ansNow = answersFor(q); var missing = Object.keys(P).filter(function (pid) { return !ansNow[pid]; }).map(function (pid) { return P[pid].name || 'ללא שם'; });
       var labels = { lobby: 'לובי: ממתינים למשתתפים', question: 'שאלה פתוחה: המשתתפים עונים', reveal: 'התשובה נחשפה: אפשר לדבר על השאלה', board: 'טבלת הניקוד מוצגת לכולם', final: 'המשחק הסתיים, התוצאות מוצגות לכולם' };
       phaseLbl.textContent = labels[s.phase] || '';
       answered.textContent = ac + ' מתוך ' + n + ' ענו';
       var key = ui.hostPick !== null ? ui.hostPick : (Q.correct === undefined ? null : Q.correct);
       dist.update({ liveCounts: true, key: s.phase === 'question' ? key : null, pick: ui.hostPick });
-      if (s.phase === 'question') hint.textContent = key === null ? 'לשאלה הזו עוד אין תשובה מוגדרת. לחצו על התשובה הנכונה ואז על "חשוף תשובה".' : 'התשובה הנכונה כבר מסומנת ב-✓ ורק אתם רואים אותה. לשינוי לפני החשיפה, לחצו על תשובה אחרת.';
+      if (s.phase === 'question') hint.textContent = (key === null ? 'לשאלה הזו עוד אין תשובה מוגדרת. לחצו על התשובה הנכונה ואז על "חשוף תשובה". ' : 'התשובה הנכונה כבר מסומנת ב-✓ ורק אתם רואים אותה. לשינוי לפני החשיפה, לחצו על תשובה אחרת. ') + (missing.length ? 'עדיין לא ענו: ' + missing.slice(0, 8).join(', ') + (missing.length > 8 ? ' ועוד ' + (missing.length - 8) : '') + '.' : '');
       else if (s.phase === 'reveal') hint.textContent = 'טעות בחשיפה? לחיצה על תשובה אחרת מתקנת אותה לכולם.';
       else hint.textContent = '';
       if (s.phase === 'lobby') { primary.textContent = (G.results && Object.keys(G.results).length) ? 'המשך משחק' : (n ? 'התחל משחק (' + n + ' משתתפים)' : 'התחל משחק'); primary.disabled = false; }
-      else if (s.phase === 'question') { primary.textContent = key !== null ? 'חשוף תשובה (' + LETTERS[key] + ')' : 'סמנו תשובה נכונה כדי לחשוף'; primary.disabled = key === null; }
-      else if (s.phase === 'reveal') { primary.textContent = q + 1 >= N ? 'סיום המשחק והצגת התוצאות' : 'השאלה הבאה (' + (q + 2) + ')'; primary.disabled = false; }
-      else if (s.phase === 'board') { primary.textContent = 'חזרה לשאלה ' + (q + 1); primary.disabled = false; }
+      else if (s.phase === 'question') {
+        if (key === null) { primary.textContent = 'סמנו תשובה נכונה כדי לחשוף'; primary.disabled = true; }
+        else if (missing.length) { primary.textContent = 'ממתינים ל-' + missing.length + (missing.length === 1 ? ' משתתף שעוד לא ענה' : ' משתתפים שעוד לא ענו'); primary.disabled = true; }
+        else { primary.textContent = 'חשוף תשובה (' + LETTERS[key] + ')'; primary.disabled = false; }
+      }
+      else if (s.phase === 'reveal') { primary.textContent = q + 1 >= N ? 'סיום המשחק והצגת התוצאות' : (((q + 1) % 5 === 0 && s.boardDone !== q) ? 'הצג טבלת ניקוד על המסך' : 'השאלה הבאה (' + (q + 2) + ')'); primary.disabled = false; }
+      else if (s.phase === 'board') { primary.textContent = result(q) ? (q + 1 < N ? 'המשך לשאלה ' + (q + 2) : 'סיום המשחק והצגת התוצאות') : 'חזרה לשאלה ' + (q + 1); primary.disabled = false; }
       else { primary.textContent = 'הצג טבלת ניקוד'; primary.disabled = false; }
+      forceB.hidden = !(s.phase === 'question' && key !== null && missing.length > 0);
       prevB.hidden = !inQ(s) || q === 0; skipB.hidden = s.phase !== 'question'; boardB.hidden = !inQ(s);
       backB.hidden = !(s.phase === 'board' || s.phase === 'final'); finalB.hidden = s.phase === 'final' || s.phase === 'lobby'; lobbyB.hidden = s.phase === 'lobby';
       jump.value = inQ(s) ? String(q) : '';
       var rows = computeRows(); pcount.textContent = '(' + n + ')';
-      if (!boardPanel.hidden) { boardTitle.textContent = s.phase === 'final' ? 'התוצאות הסופיות' : 'טבלת הניקוד'; boardWrap.replaceChildren(leaderboard(rows, {})); }
+      if (!boardPanel.hidden) boardWrap.replaceChildren(winnerLine(rows), leaderboard(rows, {}));
       var ans = answersFor(q);
       var items = rows.map(function (r) { return playerRow(r, s, ans); });
       Object.keys(liByPid).forEach(function (pid) { if (!players()[pid]) delete liByPid[pid]; });
@@ -471,14 +492,15 @@
   }
 
   function viewScreenBoard() {
-    var h = el('h1', 'h'); var podium = el('div', 'podium'); var box = el('div', 'board-wrap'); var shot = false;
-    var root = el('div', 'screen tv tv-board', el('main', null, h, podium, box));
+    var h = el('h1', 'h'); var sub = el('p', 'sub'); var win = el('div', 'winner-wrap'); var podium = el('div', 'podium'); var box = el('div', 'board-wrap'); var shot = false;
+    var root = el('div', 'screen tv tv-board', el('main', null, h, sub, win, podium, box));
     function update() {
-      var s = state(); var rows = computeRows();
-      h.textContent = s.phase === 'final' ? 'התוצאות הסופיות' : 'טבלת הניקוד';
-      podium.hidden = s.phase !== 'final';
-      if (s.phase === 'final') { renderPodium(podium, rows); if (!shot) { shot = true; confetti(); } }
-      box.replaceChildren(leaderboard(rows, { limit: s.phase === 'final' ? 200 : 12 }));
+      var s = state(); var rows = computeRows(); var nres = Object.keys(G.results || {}).length;
+      h.textContent = s.phase === 'final' ? 'סיום המשחק' : 'טבלת הניקוד';
+      sub.textContent = s.phase === 'final' ? 'התוצאות הסופיות אחרי ' + nres + ' שאלות' : 'אחרי ' + nres + ' שאלות, ' + rows.length + ' משתתפים';
+      podium.hidden = s.phase !== 'final'; win.hidden = s.phase !== 'final';
+      if (s.phase === 'final') { win.replaceChildren(winnerLine(rows)); renderPodium(podium, rows); if (!shot) { shot = true; confetti(); } }
+      box.replaceChildren(leaderboard(rows, { cols: true }));
     }
     return { el: root, update: update };
   }
