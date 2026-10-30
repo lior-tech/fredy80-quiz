@@ -1217,4 +1217,4 @@ window.QUIZ_QUESTIONS = [
  }
 ];
 // Answer key given by Lior on 30 Oct 2026 (1 = א, 2 = ב, 3 = ג, 4 = ד per question), stored reversed and base64-encoded so it is not readable at a glance.
-window.QUIZ_KEY = "MzQ0NDQzNDMxMTQxMjMyMTM0MjIzNDEyMTQ0NDQxMjExNDQyMzIzMjQ0MTMyMTQxNDQxMzIyNDI0MzIzNDQzMzMzNDIxNDExMjMyNDM0MjQ0";
+window.QUIZ_KEY = "MzQ0NDQzNDMxMTQxMjMyMTM0MjIzNDEyMTQ0NDQxMjExNDQyMzIzMjQ0MTMyNDQxNDQxMzIyNDI0MzIzNDQzMzMzNDIxNDExMjMyNDM0MjQ0";
