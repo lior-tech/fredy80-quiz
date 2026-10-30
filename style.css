@@ -217,3 +217,4 @@ button.opt:not(:disabled):active { transform: scale(.985); }
 .fs-btn:hover { border-color: var(--gold); }
 html.is-fullscreen.idle .fs-btn { opacity: 0; pointer-events: none; }
 html.is-fullscreen.idle, html.is-fullscreen.idle * { cursor: none; }
+.fs-hint { position: fixed; bottom: max(14px, env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 39; background: rgba(232,184,74,.95); color: #1b1608; font-weight: 700; font-size: clamp(1rem, 1.6vw, 1.3rem); padding: 10px 22px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.35); pointer-events: none; white-space: nowrap; }

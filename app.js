@@ -511,8 +511,11 @@
       } catch (e) {}
     }
     var fsBtn = btn('מסך מלא', 'fs-btn', toggleFullscreen); fsBtn.id = 'btn-fullscreen'; fsBtn.title = 'מסך מלא (מקש F, יציאה עם Esc)';
-    document.body.append(fsBtn);
-    function onFs() { var on = isFull(); fsBtn.textContent = on ? 'יציאה ממסך מלא' : 'מסך מלא'; document.documentElement.classList.toggle('is-fullscreen', on); }
+    var fsHint = el('div', 'fs-hint', 'לחצו בכל מקום על המסך כדי לעבור למסך מלא'); fsHint.id = 'fs-hint';
+    document.body.append(fsBtn, fsHint);
+    // any click on the TV page enters fullscreen (the page has nothing else to click)
+    document.addEventListener('click', function (e) { if (!isFull() && !fsBtn.contains(e.target)) toggleFullscreen(); });
+    function onFs() { var on = isFull(); fsBtn.textContent = on ? 'יציאה ממסך מלא' : 'מסך מלא'; fsHint.hidden = on; document.documentElement.classList.toggle('is-fullscreen', on); }
     document.addEventListener('fullscreenchange', onFs); document.addEventListener('webkitfullscreenchange', onFs);
     document.addEventListener('keydown', function (e) { if ((e.key === 'f' || e.key === 'F' || e.key === 'כ') && !e.metaKey && !e.ctrlKey && !e.altKey) toggleFullscreen(); });
     var idleT;
